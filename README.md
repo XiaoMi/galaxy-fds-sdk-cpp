@@ -1,10 +1,10 @@
 # Galaxy FDS C++ SDK User Guide
 
 ## Build
-1. The following third-party libraries are required to being installed to build properly:
+- The following third-party libraries are required to being installed to build properly:
 * Poco, only need its Foundation/Net/JSON/NETSSL_OpenSSL module. Refer http://pocoproject.org for installation.
 * OpenSSL.
-2. After the dependencies are installed properly, run the following command to build:
+- After the dependencies are installed properly, run the following command to build:
 ```
 $ cd ${SDK_SRC_DIR}
 $ mkdir cmake_build
