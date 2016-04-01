@@ -24,6 +24,10 @@ public:
   static const std::string READ_STR;
   static const int WRITE = 0x02;
   static const std::string WRITE_STR;
+  static const int READ_OBJECTS = 0x04;
+  static const std::string READ_OBJECTS_STR;
+  static const int SSO_WRITE = 0x08;
+  static const std::string SSO_WRITE_STR;
   static const int FULL_CONTROL = 0xff;
   static const std::string FULL_CONTROL_STR;
 

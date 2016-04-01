@@ -1,7 +1,13 @@
 #include <memory>
 
+#include <Poco/Net/HTTPSessionFactory.h>
+#include <Poco/Net/HTTPSessionInstantiator.h>
+#include <Poco/Net/HTTPSSessionInstantiator.h>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPSClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
 #include <Poco/StreamCopier.h>
-#include <Poco/DateTime.h>
 #include <Poco/DateTimeFormatter.h>
 
 #include "gtest/gtest.h"
@@ -20,21 +26,36 @@
 using namespace std;
 using namespace galaxy::fds;
 using namespace Poco;
+using namespace Poco::Net;
+using namespace Poco::JSON;
 
 class GalaxyFDSClientTest : public testing::Test {
 protected:
   static void SetUpTestCase() {
-    string accesskey = "{access_key}";
-    string secretKey = "{secret_key}";
+    string accesskey = "{accessKey}";
+    string secretKey = "{secretKey}";
     FDSClientConfiguration config;
     config.enableHttps(false);
     config.enableCdnForDownload(false);
     _fdsClient = new GalaxyFDSClient(accesskey, secretKey, config);
   }
 
+  void SetUp() {
+    vector<shared_ptr<FDSBucket> > bucketList = _fdsClient->listBuckets();
+    for (auto b: bucketList) {
+      string bucketName = b->name();
+      if (0 == bucketName.compare(0, 8, "cpp-test")) {
+        ClearBucket(bucketName);
+        _fdsClient->deleteBucket(bucketName);
+      }
+    }
+  }
+
   static void TearDownTestCase() {
     delete _fdsClient;
   }
+
+  void ClearBucket(const string& bucketName);
 
   static GalaxyFDS* _fdsClient;
 };
@@ -42,7 +63,7 @@ protected:
 GalaxyFDS* GalaxyFDSClientTest::_fdsClient = 0;
 
 TEST_F(GalaxyFDSClientTest, GetObjectTest) {
-  string bucketName = "get-object-test-bucket-name";
+  string bucketName = "cpp-test-get-object-test-bucket-name";
   string objectName = "get-object-test-object-name";
 
   _fdsClient->createBucket(bucketName);
@@ -59,7 +80,7 @@ TEST_F(GalaxyFDSClientTest, GetObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, PutObjectTest) {
-  string bucketName = "put-object-test-bucket-name";
+  string bucketName = "cpp-test-put-object-test-bucket-name";
   string objectName = "put-object-test-object-name";
 
   _fdsClient->createBucket(bucketName);
@@ -72,7 +93,7 @@ TEST_F(GalaxyFDSClientTest, PutObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, PostObjectTest) {
-  string bucketName = "post-object-test-bucket-name";
+  string bucketName = "cpp-test-post-object-test-bucket-name";
   string objectName = "post-object-test-object-name";
 
   _fdsClient->createBucket(bucketName);
@@ -85,7 +106,7 @@ TEST_F(GalaxyFDSClientTest, PostObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, ListBucketsTest) {
-  string bucketName = "list-buckets-test-bucket-name";
+  string bucketName = "cpp-test-list-buckets-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
   vector<shared_ptr<FDSBucket> > buckets = _fdsClient->listBuckets();
@@ -102,14 +123,14 @@ TEST_F(GalaxyFDSClientTest, ListBucketsTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, CreateAndDeleteBucketTest) {
-  string bucketName = "create-and-delete-bucket-test-bucket-name";
+  string bucketName = "cpp-test-create-and-delete-bucket-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
   _fdsClient->deleteBucket(bucketName);
 }
 
 TEST_F(GalaxyFDSClientTest, DoesBucketExistTest) {
-  string bucketName = "does-bucket-exist-test-bucket-name";
+  string bucketName = "cpp-test-does-bucket-exist-test-bucket-name";
 
   bool exist = _fdsClient->doesBucketExist(bucketName);
   EXPECT_FALSE(exist);
@@ -120,21 +141,47 @@ TEST_F(GalaxyFDSClientTest, DoesBucketExistTest) {
   _fdsClient->deleteBucket(bucketName);
 }
 
+void GalaxyFDSClientTest::ClearBucket(const string& bucketName) {
+  shared_ptr<FDSObjectListing> pObjectListing = _fdsClient->listObjects(
+          bucketName, "", "");
+  while (true) {
+    vector<FDSObjectSummary> s = pObjectListing->objectSummaries();
+    for (FDSObjectSummary i: s) {
+      string objectName = i.objectName();
+      _fdsClient->deleteObject(bucketName, objectName);
+    }
+
+    if (!pObjectListing->truncated()) {
+      break;
+    }
+
+    pObjectListing = _fdsClient->listNextBatchOfObjects(*pObjectListing);
+  }
+}
+
 TEST_F(GalaxyFDSClientTest, GetAndSetBucketAclTest) {
-  string bucketName = "bucket-acl-test-bucket-name";
+  string bucketName = "cpp-test-bucket-acl-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
   AccessControlList acl;
-  acl.addGrant(Grant("user", Permission(Permission::READ),
+  acl.addGrant(Grant("user_read", Permission(Permission::READ),
+        GrantType(GrantType::USER)));
+  acl.addGrant(Grant("user_write_with_sso", Permission(Permission::SSO_WRITE),
         GrantType(GrantType::USER)));
   _fdsClient->setBucketAcl(bucketName, acl);
   shared_ptr<AccessControlList> pAcl = _fdsClient->getBucketAcl(bucketName);
   vector<Grant> grants = pAcl->getGrants();
 
   for (size_t i = 0; i < grants.size(); i++) {
-    if (grants[i].granteeId() == "user") {
-      EXPECT_TRUE(Permission::READ == grants[i].permission().value());
-      EXPECT_TRUE(GrantType::USER == grants[i].grantType().value());
+    const std::string& id = grants[i].granteeId();
+    Permission permission = grants[i].permission().value();
+    GrantType grantType = grants[i].grantType().value();
+    if (id == "user") {
+      EXPECT_EQ(Permission::READ_STR, permission.name());
+      EXPECT_EQ(GrantType::USER_STR, grantType.name());
+    } else if (id == "user_write_with_sso") {
+      EXPECT_EQ(Permission::SSO_WRITE_STR, permission.name());
+      EXPECT_EQ(GrantType::USER_STR, grantType.name());
     }
   }
 
@@ -142,7 +189,7 @@ TEST_F(GalaxyFDSClientTest, GetAndSetBucketAclTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, GetAndSetBucketQuotaTest) {
-  string bucketName = "bucket-quota-test-bucket-name";
+  string bucketName = "cpp-test-bucket-quota-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
   QuotaPolicy quotaPolicy;
@@ -160,7 +207,7 @@ TEST_F(GalaxyFDSClientTest, GetAndSetBucketQuotaTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, GetObjectMetadataTest) {
-  string bucketName = "metadata-test-bucket-name";
+  string bucketName = "cpp-test-metadata-test-bucket-name";
   string objectName = "metadata-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
@@ -180,7 +227,7 @@ TEST_F(GalaxyFDSClientTest, GetObjectMetadataTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, GetAndSetObjectAclTest) {
-  string bucketName = "object-acl-test-bucket-name";
+  string bucketName = "cpp-test-object-acl-test-bucket-name";
   string objectName = "object-acl-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
@@ -203,7 +250,7 @@ TEST_F(GalaxyFDSClientTest, GetAndSetObjectAclTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, DoesObjectExistTest) {
-  string bucketName = "does-object-exist-test-bucket-name";
+  string bucketName = "cpp-test-does-object-exist-test-bucket-name";
   string objectName = "does-object-exist-test-bucket-name";
 
   _fdsClient->createBucket(bucketName);
@@ -219,7 +266,7 @@ TEST_F(GalaxyFDSClientTest, DoesObjectExistTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, RenameObjectTest) {
-  string bucketName = "rename-object-test-bucket-name";
+  string bucketName = "cpp-test-rename-object-test-bucket-name";
   string objectName = "rename-object-test-bucket-name";
   string dstObjectName = "rename-object-test-bucket-name-dst";
 
@@ -239,13 +286,14 @@ TEST_F(GalaxyFDSClientTest, RenameObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, PrefetchObjectTest) {
-  string bucketName = "prefetch-object-test-bucket-name";
+  string bucketName = "cpp-test-prefetch-object-test-bucket-name";
   string objectName = "prefetch-object-test-bucket-name";
 
-  _fdsClient->createBucket(bucketName);
+  if (!_fdsClient->doesBucketExist(bucketName))
+    _fdsClient->createBucket(bucketName);
   stringstream ss("This is a test object");
   _fdsClient->putObject(bucketName, objectName, ss);
-  _fdsClient->setPublic(bucketName, objectName, true);
+  _fdsClient->setPublic(bucketName, objectName);
   _fdsClient->prefetchObject(bucketName, objectName);
 
   _fdsClient->deleteObject(bucketName, objectName);
@@ -253,13 +301,15 @@ TEST_F(GalaxyFDSClientTest, PrefetchObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, RefreshObjectTest) {
-  string bucketName = "refresh-object-test-bucket-name";
+  string bucketName = "cpp-test-refresh-object-test-bucket-name";
   string objectName = "refresh-object-test-bucket-name";
 
-  _fdsClient->createBucket(bucketName);
+  if (!_fdsClient->doesBucketExist(bucketName)) {
+    _fdsClient->createBucket(bucketName);
+  }
   stringstream ss("This is a test object");
   _fdsClient->putObject(bucketName, objectName, ss);
-  _fdsClient->setPublic(bucketName, objectName, true);
+  _fdsClient->setPublic(bucketName, objectName);
   _fdsClient->refreshObject(bucketName, objectName);
 
   _fdsClient->deleteObject(bucketName, objectName);
@@ -267,7 +317,7 @@ TEST_F(GalaxyFDSClientTest, RefreshObjectTest) {
 }
 
 TEST_F(GalaxyFDSClientTest, ListObjectsTest) {
-  string bucketName = "list-objects-test-bucket-name";
+  string bucketName = "cpp-test-list-objects-test-bucket-name";
   stringstream ss;
 
   _fdsClient->createBucket(bucketName);
@@ -293,5 +343,96 @@ TEST_F(GalaxyFDSClientTest, ListObjectsTest) {
   _fdsClient->deleteObject(bucketName, "foo/bar/test");
   _fdsClient->deleteObject(bucketName, "foo");
   _fdsClient->deleteObject(bucketName, "bar");
+  _fdsClient->deleteBucket(bucketName);
+}
+
+TEST_F(GalaxyFDSClientTest, RestoreObjectsTest) {
+  string bucketName = "cpp-test-restore-objects-test-bucket-name";
+  string objectName = "bar";
+  string objectContent = "blablab";
+  stringstream ss(objectContent);
+
+  // put object
+  _fdsClient->createBucket(bucketName);
+  _fdsClient->putObject(bucketName, objectName, ss);
+
+  // delete object
+  _fdsClient->deleteObject(bucketName, objectName);
+  ASSERT_THROW(_fdsClient->getObject(bucketName, objectName), GalaxyFDSClientException);
+
+  // restore object
+  _fdsClient->restoreObject(bucketName, objectName);
+
+  // check object
+  shared_ptr<FDSObject> object = _fdsClient->getObject(bucketName, objectName);
+  stringstream res;
+  StreamCopier::copyStream(object->objectContent(), res);
+  ASSERT_EQ(objectContent, res.str());
+}
+
+string lowercase(const string& s) {
+  string r;
+  for (auto c: s) {
+    r.push_back(c <= 'z' && c >= 'a' ? c : c + 'a' - 'A');
+  }
+
+  return r;
+}
+
+TEST_F(GalaxyFDSClientTest, PutWithPresignedURL) {
+  const string bucketName = "cpp-test-put-with-presigned-url";
+  const string objectName = "object-name";
+  const string contentType = "text/blah";
+  const string objectContent = "This is a test object";
+  stringstream ss(objectContent);
+
+  time_t t = time(NULL);
+  // generate uri
+  string uri = _fdsClient->generatePresignedUri(bucketName, objectName,
+                            t * 1000 + 60000, "PUT", contentType);
+
+  URI pocoUri(uri);
+  bool r = pocoUri.isRelative();
+  std::shared_ptr<Poco::Net::HTTPSessionFactory> _pSessionFactory(new HTTPSessionFactory());
+  Poco::Net::Context*  _pContext = new Context(Context::CLIENT_USE, "", "", "", Context::VERIFY_NONE);
+  _pSessionFactory->registerProtocol("https", new HTTPSSessionInstantiator(
+          _pContext));
+  _pSessionFactory->registerProtocol("http", new HTTPSessionInstantiator());
+  shared_ptr<HTTPClientSession> pSession(_pSessionFactory->createClientSession(
+          pocoUri));
+
+  _fdsClient->createBucket(bucketName);
+  // put object
+  pSession->setHost(pocoUri.getHost());
+  pSession->setPort(pocoUri.getPort());
+  HTTPRequest request(HTTPRequest::HTTP_PUT, uri, HTTPMessage::HTTP_1_1);
+  request.setContentType(contentType);
+  request.setContentLength(objectContent.size());
+  HTTPResponse response;
+  ostream& os = pSession->sendRequest(request);
+  StreamCopier::copyStream(ss, os);
+  istream& rs = pSession->receiveResponse(response);
+
+  ASSERT_EQ(200, response.getStatus());
+
+  // check object
+  shared_ptr<FDSObject> object = _fdsClient->getObject(bucketName, objectName);
+  stringstream res;
+  StreamCopier::copyStream(object->objectContent(), res);
+  ASSERT_EQ(objectContent, res.str());
+  map<string, string> m = object->objectMetadata().metadata();
+  string contentTypeGot;
+  for (auto i: m) {
+    string k = i.first;
+    string v = i.second;
+    if (lowercase(k) == lowercase(Constants::CONTENT_TYPE)) {
+      contentTypeGot = v;
+      break;
+    }
+  }
+
+  ASSERT_EQ(contentType, contentTypeGot);
+
+  _fdsClient->deleteObject(bucketName, objectName);
   _fdsClient->deleteBucket(bucketName);
 }
