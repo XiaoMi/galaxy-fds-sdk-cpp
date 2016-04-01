@@ -201,8 +201,9 @@ TEST(AccessControlListTest, Positive) {
   expectAcl.addGrant(Grant("user1", Permission::READ, GrantType::USER));
   expectAcl.addGrant(Grant("user1", Permission::WRITE, GrantType::USER));
   expectAcl.addGrant(Grant("user2", Permission::WRITE, GrantType::USER));
+  expectAcl.addGrant(Grant("user3", Permission::READ_OBJECTS, GrantType::USER));
   expectAcl.addGrant(Grant("admin", Permission::FULL_CONTROL, GrantType::USER));
-  EXPECT_EQ(4, expectAcl.getGrants().size());
+  EXPECT_EQ(5, expectAcl.getGrants().size());
 
   string expectAclStr = AccessControlList::serialize(expectAcl);
   stringstream ss(expectAclStr);

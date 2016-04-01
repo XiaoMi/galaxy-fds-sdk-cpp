@@ -653,6 +653,35 @@ void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
   }
 }
 
+
+void GalaxyFDSClient::restoreObject(const std::string& bucketName, const std::string&
+    objectName) {
+  vector<string> subResource;
+  subResource.push_back("restore");
+  string uri = formatUri(_pConfig->getBaseUri(), bucketName + "/" + objectName,
+                         subResource);
+  URI pocoUri(uri);
+
+  shared_ptr<HTTPClientSession> pSession(_pSessionFacotry->createClientSession(
+          pocoUri));
+  pSession->setHost(pocoUri.getHost());
+  pSession->setPort(pocoUri.getPort());
+  HTTPRequest request(HTTPRequest::HTTP_PUT, uri, HTTPMessage::HTTP_1_1);
+  prepareRequestHeaders(uri, HTTPRequest::HTTP_PUT, "", _emptyStream,
+                        *_pEmptyMetadata, request);
+  HTTPResponse response;
+
+  pSession->sendRequest(request);
+  istream& rs = pSession->receiveResponse(response);
+
+  if (response.getStatus() != HTTPResponse::HTTP_OK) {
+    stringstream msg;
+    msg << "Restore object failed, status=" << response.getStatus() << ", reason=";
+    StreamCopier::copyStream(rs, msg);
+    throw GalaxyFDSClientException(msg.str());
+  }
+}
+
 void GalaxyFDSClient::renameObject(const string& bucketName, const string&
     srcObjectName, const string& dstObjectName) {
   string uri = formatUri(_pConfig->getBaseUri(), bucketName + "/" + srcObjectName,
@@ -736,18 +765,10 @@ void GalaxyFDSClient::refreshObject(const string& bucketName, const string&
 
 void GalaxyFDSClient::setPublic(const string& bucketName, const string&
     objectName) {
-  setPublic(bucketName, objectName, false);
-}
-
-void GalaxyFDSClient::setPublic(const string& bucketName, const string&
-    objectName, bool disablePrefetch) {
   AccessControlList acl;
   acl.addGrant(Grant(UserGroups(UserGroups::ALL_USERS).name(), Permission::READ,
         GrantType::GROUP));
   setObjectAcl(bucketName, objectName, acl);
-  if (!disablePrefetch) {
-    prefetchObject(bucketName, objectName);
-  }
 }
 
 string GalaxyFDSClient::generateDownloadObjectUri(const string&
@@ -758,19 +779,24 @@ string GalaxyFDSClient::generateDownloadObjectUri(const string&
 
 string GalaxyFDSClient::generatePresignedUri(const string& bucketName,
     const string& objectName, time_t expiration, const string& httpMethod) {
-  return generatePresignedUri(_pConfig->getBaseUri(), bucketName, objectName,
-      expiration, httpMethod);
+  string contentType;
+  return generatePresignedUri(_pConfig->getBaseUri(), bucketName, objectName, expiration, httpMethod, contentType);
 }
 
 string GalaxyFDSClient::generatePresignedCdnUri(const string& bucketName,
     const string& objectName, time_t expiration, const string& httpMethod) {
   return generatePresignedUri(_pConfig->getCdnBaseUri(), bucketName, objectName,
-      expiration, httpMethod);
+      expiration, httpMethod, string());
+}
+
+string GalaxyFDSClient::generatePresignedUri(const string& bucketName,
+    const string& objectName, time_t expiration, const string& httpMethod, const std::string& contentType) {
+  return generatePresignedUri(_pConfig->getBaseUri(), bucketName, objectName, expiration, httpMethod, contentType);
 }
 
 string GalaxyFDSClient::generatePresignedUri(const string& baseUri, const
     string& bucketName, const string& objectName, time_t expiration, const
-    string& httpMethod) {
+    string& httpMethod, const string& contentType) {
   stringstream ss;
   ss << baseUri;
   ss << "/" << bucketName << "/" << objectName;
@@ -780,8 +806,14 @@ string GalaxyFDSClient::generatePresignedUri(const string& baseUri, const
   string uri = ss.str();
   string relativeUri = uri.substr(uri.find_first_of('/', 
       uri.find_first_of(':') + 3));
+  LinkedListMultimap headers = LinkedListMultimap();
+  if (!contentType.empty()) {
+    list<string> l;
+    l.push_front(contentType);
+    headers[Constants::CONTENT_TYPE] = l;
+  }
   string signature = Signer::SignToBase64(httpMethod, relativeUri,
-      LinkedListMultimap(), _secretKey, kHmacSha1);
+      headers, _secretKey, kHmacSha1);
   ss << "&Signature=" << signature;
   return ss.str();
 }

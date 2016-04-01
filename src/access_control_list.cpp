@@ -22,6 +22,10 @@ const string Permission::READ_STR = "READ";
 
 const string Permission::WRITE_STR = "WRITE";
 
+const string Permission::READ_OBJECTS_STR = "READ_OBJECTS";
+
+const string Permission::SSO_WRITE_STR = "SSO_WRITE";
+
 const string Permission::FULL_CONTROL_STR = "FULL_CONTROL";
 
 vector<Permission> Permission::_allValues = Permission::initAllValues();
@@ -30,6 +34,8 @@ vector<Permission> Permission::initAllValues() {
   vector<Permission> res;
   res.push_back(Permission(READ));
   res.push_back(Permission(WRITE));
+  res.push_back(Permission(READ_OBJECTS));
+  res.push_back(Permission(SSO_WRITE));
   res.push_back(Permission(FULL_CONTROL));
   return res;
 }
@@ -40,6 +46,10 @@ const string& Permission::name() const {
       return READ_STR;
     case WRITE:
       return WRITE_STR;
+    case READ_OBJECTS:
+      return READ_OBJECTS_STR;
+    case SSO_WRITE:
+      return SSO_WRITE_STR;
     case FULL_CONTROL:
       return FULL_CONTROL_STR;
     default:
@@ -52,6 +62,10 @@ Permission Permission::valueOf(const string& text) {
     return Permission(READ);
   } else if (text == WRITE_STR) {
     return Permission(WRITE);
+  } else if (text == READ_OBJECTS_STR) {
+    return Permission(READ_OBJECTS);
+  } else if (text == SSO_WRITE_STR) {
+    return Permission(SSO_WRITE);
   } else if (text == FULL_CONTROL_STR) {
     return Permission(FULL_CONTROL);
   } else {

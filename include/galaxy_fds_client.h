@@ -97,6 +97,9 @@ public:
   void deleteObject(const std::string& bucketName, const std::string&
       objectName);
 
+  void restoreObject(const std::string& bucketName, const std::string&
+     objectName);
+
   void renameObject(const std::string& bucketName, const std::string&
       srcObjectName, const std::string& dstObjectname);
 
@@ -108,15 +111,16 @@ public:
 
   void setPublic(const std::string& bucketName, const std::string& objectName);
 
-  void setPublic(const std::string& bucketName, const std::string& objectName,
-      bool disablePrefetch);
-
   std::string generateDownloadObjectUri(const std::string& bucketName,
       const std::string& objectName);
 
   std::string generatePresignedUri(const std::string& bucketName,
       const std::string& objectName, time_t expiration,
       const std::string& httpMethod);
+
+  std::string generatePresignedUri(const std::string& bucketName,
+      const std::string& objectName, time_t expiration,
+      const std::string& httpMethod, const std::string& contentType);
 
   std::string generatePresignedCdnUri(const std::string& bucketName,
       const std::string& objectName, time_t expiration,
@@ -136,7 +140,7 @@ private:
 
   std::string generatePresignedUri(const std::string& baseUri, const
       std::string& bucketName, const std::string& objectName, time_t expiration,
-      const std::string& httpMethod);
+      const std::string& httpMethod, const std::string& contentType);
 
 private:
   std::shared_ptr<Poco::Net::HTTPSessionFactory> _pSessionFacotry;

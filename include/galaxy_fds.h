@@ -89,6 +89,9 @@ public:
   virtual void deleteObject(const std::string& bucketName, const std::string&
       objectName) = 0;
 
+  virtual void restoreObject(const std::string& bucketName, const std::string&
+      objectName) = 0;
+
   virtual void renameObject(const std::string& bucketName, const std::string&
       srcObjectName, const std::string& dstObjectName) = 0;
 
@@ -101,9 +104,6 @@ public:
   virtual void setPublic(const std::string& bucketName, const std::string&
       objectName) = 0;
 
-  virtual void setPublic(const std::string& bucketName, const std::string&
-      objectName, bool disablePrefetch) = 0;
-
   virtual std::string generateDownloadObjectUri(const std::string& bucketName,
       const std::string& objectName) = 0;
 
@@ -111,9 +111,14 @@ public:
       const std::string& objectName, time_t expiration,
       const std::string& httpMethod) = 0;
 
+  virtual std::string generatePresignedUri(const std::string& bucketName,
+      const std::string& objectName, time_t expiration,
+      const std::string& httpMethod, const std::string& contentType) = 0;
+
   virtual std::string generatePresignedCdnUri(const std::string& bucketName,
       const std::string& objectName, time_t expiration,
       const std::string& httpMethod) = 0;
+
 }; // classs GalaxyFDS
 
 } // namespace fds
