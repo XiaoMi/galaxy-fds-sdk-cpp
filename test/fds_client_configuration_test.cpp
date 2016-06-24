@@ -9,29 +9,25 @@ TEST(FDSClientConfigurationTest, Positive) {
   FDSClientConfiguration config;
 
   // Test flag enableCdnForUpload
+  config.setRegionName("regionName");
   config.enableCdnForUpload(false);
-  EXPECT_EQ("https://files" + FDSClientConfiguration::URI_FDS_SUFFIX,
+  EXPECT_EQ("https://regionName." + FDSClientConfiguration::URI_SUFFIX,
       config.getUploadBaseUri());
   config.enableCdnForUpload(true);
-  EXPECT_EQ("https://cdn" + FDSClientConfiguration::URI_FDS_SSL_SUFFIX,
+  EXPECT_EQ("https://cdn.regionName." + FDSClientConfiguration::URI_CDN_SUFFIX,
       config.getUploadBaseUri());
   config.enableHttps(false);
-  EXPECT_EQ("http://cdn" + FDSClientConfiguration::URI_FDS_SUFFIX,
+  EXPECT_EQ("http://cdn.regionName." + FDSClientConfiguration::URI_CDN_SUFFIX,
       config.getUploadBaseUri());
 
   // Test flag enableCdnForDownload
   config.enableCdnForDownload(false);
-  EXPECT_EQ("http://files" + FDSClientConfiguration::URI_FDS_SUFFIX,
+  EXPECT_EQ("http://regionName." + FDSClientConfiguration::URI_SUFFIX,
       config.getDownloadBaseUri());
   config.enableCdnForDownload(true);
-  EXPECT_EQ("http://cdn" + FDSClientConfiguration::URI_FDS_SUFFIX,
+  EXPECT_EQ("http://cdn.regionName." + FDSClientConfiguration::URI_CDN_SUFFIX,
       config.getDownloadBaseUri());
   config.enableHttps(true);
-  EXPECT_EQ("https://cdn" + FDSClientConfiguration::URI_FDS_SSL_SUFFIX,
-      config.getDownloadBaseUri());
-  
-  // Test region name
-  config.setRegionName("staging");
-  EXPECT_EQ("https://staging-cdn" + FDSClientConfiguration::URI_FDS_SSL_SUFFIX,
+  EXPECT_EQ("https://cdn.regionName." + FDSClientConfiguration::URI_CDN_SUFFIX,
       config.getDownloadBaseUri());
 }

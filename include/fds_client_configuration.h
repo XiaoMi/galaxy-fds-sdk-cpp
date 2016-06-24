@@ -18,13 +18,11 @@ public:
 
   static const std::string URI_HTTPS_PREFIX;
 
-  static const std::string URI_FILES;
-
   static const std::string URI_CDN;
 
-  static const std::string URI_FDS_SUFFIX;
+  static const std::string URI_SUFFIX;
 
-  static const std::string URI_FDS_SSL_SUFFIX;
+  static const std::string URI_CDN_SUFFIX;
 
   FDSClientConfiguration();
 
@@ -54,10 +52,6 @@ public:
 
 private:
   std::string buildBaseUri(bool enableCdn) const;
-
-  std::string getBaseUriPrefix(bool enableCdn) const;
-
-  std::string getBaseUriSuffix(bool enableCdn) const;
 
 private:
   std::string _regionName;
