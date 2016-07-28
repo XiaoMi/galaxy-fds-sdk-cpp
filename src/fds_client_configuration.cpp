@@ -14,8 +14,8 @@ namespace fds {
 const string FDSClientConfiguration::URI_HTTP_PREFIX = "http://";
 const string FDSClientConfiguration::URI_HTTPS_PREFIX = "https://";
 const string FDSClientConfiguration::URI_CDN = "cdn";
-const string FDSClientConfiguration::URI_SUFFIX = ".fds.api.xiaomi.com";
-const string FDSClientConfiguration::URI_CDN_SUFFIX = ".fds.api.mi-img.com";
+const string FDSClientConfiguration::URI_SUFFIX = "fds.api.xiaomi.com";
+const string FDSClientConfiguration::URI_CDN_SUFFIX = "fds.api.mi-img.com";
 
 FDSClientConfiguration::FDSClientConfiguration() {
   _regionName = "cnbj0";
@@ -26,10 +26,14 @@ FDSClientConfiguration::FDSClientConfiguration() {
 
 string FDSClientConfiguration::buildBaseUri(bool enableCdn) const {
   string res = _enableHttps ? URI_HTTPS_PREFIX : URI_HTTP_PREFIX;
-  if (enableCdn) {
-    res += URI_CDN + "." + _regionName + "." + URI_CDN_SUFFIX;
+  if (!_endpoint.empty()) {
+    res += _endpoint;
   } else {
-    res += _regionName + "." + URI_SUFFIX;
+    if (enableCdn) {
+      res += URI_CDN + "." + _regionName + "." + URI_CDN_SUFFIX;
+    } else {
+      res += _regionName + "." + URI_SUFFIX;
+    }
   }
   return res;
 }

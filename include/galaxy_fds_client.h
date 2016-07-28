@@ -32,7 +32,7 @@ public:
       const FDSClientConfiguration& config);
 
   static const std::string DATE_FORMAT;
-  
+
   std::vector<std::shared_ptr<FDSBucket> > listBuckets();
 
   void createBucket(const std::string& bucketName);
@@ -80,6 +80,9 @@ public:
 
   std::shared_ptr<FDSObject> getObject(const std::string& bucketName,
       const std::string& objectName, long pos);
+
+  std::shared_ptr<FDSObject> getObject(const std::string& bucketName,
+      const std::string& objectName, long pos, long len);
 
   std::shared_ptr<FDSObjectMetadata> getObjectMetadata(const std::string&
       bucketName, const std::string& objectName);
@@ -144,7 +147,6 @@ private:
 
 private:
   std::shared_ptr<Poco::Net::HTTPSessionFactory> _pSessionFacotry;
-  Poco::Net::Context* _pContext; 
 
   std::shared_ptr<FDSClientConfiguration> _pConfig;
   std::string _accessKey;

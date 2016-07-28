@@ -9,6 +9,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace galaxy {
 namespace fds {
@@ -73,6 +74,9 @@ public:
 
   virtual std::shared_ptr<FDSObject> getObject(const std::string& bucketName,
       const std::string& objectName, long pos) = 0;
+
+  virtual std::shared_ptr<FDSObject> getObject(const std::string& bucketName,
+      const std::string& objectName, long pos, long len) = 0;
 
   virtual std::shared_ptr<FDSObjectMetadata> getObjectMetadata(
       const std::string& bucketName, const std::string& objectName) = 0;

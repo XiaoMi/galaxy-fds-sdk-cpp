@@ -4,6 +4,8 @@
  * Author: zhangjunbin@xiaomi.com
  */
 
+#include <sstream>
+
 #include <Poco/Net/HTTPSessionFactory.h>
 #include <Poco/Net/HTTPSessionInstantiator.h>
 #include <Poco/Net/HTTPSSessionInstantiator.h>
@@ -49,10 +51,9 @@ GalaxyFDSClient::GalaxyFDSClient(const string& accessKey, const string&
   _pConfig = shared_ptr<FDSClientConfiguration>(new FDSClientConfiguration(config));
   _pEmptyMetadata = shared_ptr<FDSObjectMetadata>(new FDSObjectMetadata());
 
-  _pContext = new Context(Context::CLIENT_USE, "", "", "", Context::VERIFY_NONE);
   _pSessionFacotry = shared_ptr<HTTPSessionFactory>(new HTTPSessionFactory());
   _pSessionFacotry->registerProtocol("https", new HTTPSSessionInstantiator(
-     _pContext));
+     new Context(Context::CLIENT_USE, "", "", "", Context::VERIFY_NONE)));
   _pSessionFacotry->registerProtocol("http", new HTTPSessionInstantiator());
 }
 
@@ -76,7 +77,7 @@ vector<shared_ptr<FDSBucket> > GalaxyFDSClient::listBuckets() {
     stringstream msg;
     msg << "List buckets failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   vector<shared_ptr<FDSBucket> > res;
@@ -119,7 +120,7 @@ void GalaxyFDSClient::createBucket(const string& bucketName) {
     stringstream msg;
     msg << "Create bucket failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -143,7 +144,7 @@ void GalaxyFDSClient::deleteBucket(const string& bucketName) {
     stringstream msg;
     msg << "Delete bucket failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -172,7 +173,7 @@ bool GalaxyFDSClient::doesBucketExist(const string& bucketName) {
     msg << "Check bucket existence failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -200,7 +201,7 @@ shared_ptr<AccessControlList> GalaxyFDSClient::getBucketAcl(const string&
     msg << "Get bucket acl failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return AccessControlList::deserialize(rs);
@@ -232,7 +233,7 @@ void GalaxyFDSClient::setBucketAcl(const string& bucketName,
     msg << "Set bucket acl failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -260,7 +261,7 @@ shared_ptr<QuotaPolicy> GalaxyFDSClient::getBucketQuota(const string&
     msg << "Get bucket quota failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return QuotaPolicy::deserialize(rs);
@@ -292,7 +293,7 @@ void GalaxyFDSClient::setBucketQuota(const string& bucketName,
     msg << "Set bucket quota failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
 }
@@ -329,7 +330,7 @@ shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
     stringstream msg;
     msg << "List objects failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return FDSObjectListing::deserialize(rs);
@@ -348,7 +349,6 @@ shared_ptr<FDSObjectListing> GalaxyFDSClient::listNextBatchOfObjects(const
   ss << uri << "?prefix=" << prefix << "&delimiter=" << delimiter;
   ss << "&marker=" << marker << "&maxKeys=" << maxKeys;
   uri = ss.str();
-  cout << "uri: " << uri << endl;
   URI pocoUri(uri);
 
   shared_ptr<HTTPClientSession> pSession(_pSessionFacotry
@@ -367,7 +367,7 @@ shared_ptr<FDSObjectListing> GalaxyFDSClient::listNextBatchOfObjects(const
     stringstream msg;
     msg << "List objects failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return FDSObjectListing::deserialize(rs);
@@ -411,7 +411,7 @@ shared_ptr<PutObjectResult> GalaxyFDSClient::putObject(const string& bucketName,
     stringstream msg;
     msg << "Put object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return PutObjectResult::deserialize(rs);
@@ -454,7 +454,7 @@ shared_ptr<PutObjectResult> GalaxyFDSClient::postObject(const string& bucketName
     stringstream msg;
     msg << "Post object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return PutObjectResult::deserialize(rs);
@@ -467,6 +467,11 @@ shared_ptr<FDSObject> GalaxyFDSClient::getObject(const string& bucketName,
 
 shared_ptr<FDSObject> GalaxyFDSClient::getObject(const string& bucketName,
     const string& objectName, long pos) {
+  return getObject(bucketName, objectName, pos, -1);
+}
+
+shared_ptr<FDSObject> GalaxyFDSClient::getObject(const string& bucketName,
+    const string& objectName, long pos, long len) {
   string uri = formatUri(_pConfig->getDownloadBaseUri(), bucketName + "/" +
       objectName, vector<string>());
   URI pocoUri(uri);
@@ -476,18 +481,28 @@ shared_ptr<FDSObject> GalaxyFDSClient::getObject(const string& bucketName,
   pSession->setHost(pocoUri.getHost());
   pSession->setPort(pocoUri.getPort());
   HTTPRequest request(HTTPRequest::HTTP_GET, uri, HTTPMessage::HTTP_1_1);
+  FDSObjectMetadata metadata;
+  if (pos >= 0 || len > 0) {
+    std::ostringstream os;
+    os << "bytes=" << pos << "-";
+    if (len > 0) {
+      os << (pos + len - 1); // inclusive
+    }
+    metadata.add(Constants::RANGE, os.str());
+  }
   prepareRequestHeaders(uri, HTTPRequest::HTTP_GET, "",  _emptyStream,
-      FDSObjectMetadata(), request);
+      metadata, request);
   HTTPResponse response;
 
   pSession->sendRequest(request);
   istream& rs = pSession->receiveResponse(response);
 
-  if (response.getStatus() != HTTPResponse::HTTP_OK) {
+  if (response.getStatus() != HTTPResponse::HTTP_OK &&
+      response.getStatus() != HTTPResponse::HTTP_PARTIAL_CONTENT) {
     stringstream msg;
     msg << "Get object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   shared_ptr<FDSObjectSummary> pObjectSummary(new FDSObjectSummary());
@@ -528,7 +543,7 @@ shared_ptr<FDSObjectMetadata> GalaxyFDSClient::getObjectMetadata(const string&
     msg << "Get object metadata failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return parseMetadata(response);
@@ -559,7 +574,7 @@ shared_ptr<AccessControlList> GalaxyFDSClient::getObjectAcl(const string&
     msg << "Get object acl failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 
   return AccessControlList::deserialize(rs);
@@ -592,7 +607,7 @@ void GalaxyFDSClient::setObjectAcl(const string& bucketName, const string&
     msg << "Set Object acl failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -623,7 +638,7 @@ bool GalaxyFDSClient::doesObjectExist(const string& bucketName, const string&
     msg << "Check object existence failed, status=" << response.getStatus()
       << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -649,7 +664,7 @@ void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
     stringstream msg;
     msg << "Delete object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -678,7 +693,7 @@ void GalaxyFDSClient::restoreObject(const std::string& bucketName, const std::st
     stringstream msg;
     msg << "Restore object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -705,7 +720,7 @@ void GalaxyFDSClient::renameObject(const string& bucketName, const string&
     stringstream msg;
     msg << "Rename object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -732,7 +747,7 @@ void GalaxyFDSClient::prefetchObject(const string& bucketName, const string&
     stringstream msg;
     msg << "Prefetch object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -759,7 +774,7 @@ void GalaxyFDSClient::refreshObject(const string& bucketName, const string&
     stringstream msg;
     msg << "Prefetch object failed, status=" << response.getStatus() << ", reason=";
     StreamCopier::copyStream(rs, msg);
-    throw GalaxyFDSClientException(msg.str());
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
   }
 }
 
@@ -804,7 +819,7 @@ string GalaxyFDSClient::generatePresignedUri(const string& baseUri, const
   ss << "&Expires=" << expiration * 1000;
 
   string uri = ss.str();
-  string relativeUri = uri.substr(uri.find_first_of('/', 
+  string relativeUri = uri.substr(uri.find_first_of('/',
       uri.find_first_of(':') + 3));
   LinkedListMultimap headers = LinkedListMultimap();
   if (!contentType.empty()) {
@@ -882,7 +897,7 @@ void GalaxyFDSClient::prepareRequestHeaders(const string& uri,
   }
 
   // authentication information
-  string relativeUri = uri.substr(uri.find_first_of('/', 
+  string relativeUri = uri.substr(uri.find_first_of('/',
       uri.find_first_of(':') + 3));
   string signature = Signer::SignToBase64(httpMethod, relativeUri, *pHeaders,
       _secretKey, kHmacSha1);

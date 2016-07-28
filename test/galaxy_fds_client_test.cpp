@@ -79,6 +79,31 @@ TEST_F(GalaxyFDSClientTest, GetObjectTest) {
   _fdsClient->deleteBucket(bucketName);
 }
 
+TEST_F(GalaxyFDSClientTest, GetObjectByRangeTest) {
+  string bucketName = "cpp-test-get-object-byrange-test-bucket-name";
+  string objectName = "get-object-test-object-name";
+
+  _fdsClient->createBucket(bucketName);
+  string expectContent = "This is a test object";
+  stringstream ss(expectContent);
+  _fdsClient->putObject(bucketName, objectName, ss);
+  long startPos = 0;
+  long length = 5;
+  shared_ptr<FDSObject> pObject = _fdsClient->getObject(bucketName, objectName, startPos, length);
+  stringstream res;
+  StreamCopier::copyStream(pObject->objectContent(), res);
+  EXPECT_EQ(expectContent.substr(startPos, length), res.str());
+
+  startPos = 5;
+  pObject = _fdsClient->getObject(bucketName, objectName, startPos, length);
+  stringstream res2;
+  StreamCopier::copyStream(pObject->objectContent(), res2);
+  EXPECT_EQ(expectContent.substr(startPos, length), res2.str());
+
+  _fdsClient->deleteObject(bucketName, objectName);
+  _fdsClient->deleteBucket(bucketName);
+}
+
 TEST_F(GalaxyFDSClientTest, PutObjectTest) {
   string bucketName = "cpp-test-put-object-test-bucket-name";
   string objectName = "put-object-test-object-name";

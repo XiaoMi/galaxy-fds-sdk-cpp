@@ -31,6 +31,8 @@ public:
   static const std::string DATE;
 
   static const std::string AUTHORIZATION;
+
+  static const std::string RANGE;
 }; // class Constants
 
 } // namespace fds

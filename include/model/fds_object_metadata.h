@@ -26,11 +26,12 @@ public:
     _preDefinedMetadata.push_back(Constants::CONTENT_MD5);
     _preDefinedMetadata.push_back(Constants::CONTENT_TYPE);
     _preDefinedMetadata.push_back(Constants::LAST_MODIFIED);
+    _preDefinedMetadata.push_back(Constants::RANGE);
   }
 
   void add(const std::string& key, const std::string& value);
 
-  const std::map<std::string, std::string>& metadata() const;  
+  const std::map<std::string, std::string>& metadata() const;
 
 private:
   void checkMetadata(const std::string& key);

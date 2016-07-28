@@ -17,6 +17,7 @@ const string Constants::CONTENT_LENGTH = "Content-Length";
 const string Constants::CONTENT_MD5 = "Content-MD5";
 const string Constants::CONTENT_TYPE = "Content-Type";
 const string Constants::LAST_MODIFIED = "Last-Modified";
+const string Constants::RANGE = "Range";
 
 const string Constants::USER_DEFINED_METADATA_PREFIX = "x-xiaomi-meta-";
 

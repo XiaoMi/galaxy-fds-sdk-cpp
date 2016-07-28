@@ -16,8 +16,18 @@ namespace fds {
 class GalaxyFDSClientException : public std::exception {
 public:
   GalaxyFDSClientException(const std::string& message) {
+		this->status = -1;
     this->message = message;
   }
+  GalaxyFDSClientException(const int status,
+			                     const std::string& message) {
+		this->status = status;
+    this->message = message;
+  }
+
+	virtual const int code() const throw() {
+		return status;
+	}
 
   virtual const char* what() const throw() {
     return message.c_str();
@@ -26,6 +36,8 @@ public:
   ~GalaxyFDSClientException() throw() {}
 
 private:
+	// http status code, -1 if unavailable
+  int status;
   std::string message;
 }; // class GalaxyFDSClientException
 

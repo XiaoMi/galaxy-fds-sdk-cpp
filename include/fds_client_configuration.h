@@ -26,6 +26,10 @@ public:
 
   FDSClientConfiguration();
 
+  const std::string& endpoint() const;
+
+  void setEndpoint(const std::string& endpoint);
+
   const std::string& regionName() const;
 
   void setRegionName(const std::string& regionName);
@@ -54,11 +58,20 @@ private:
   std::string buildBaseUri(bool enableCdn) const;
 
 private:
+  std::string _endpoint;
   std::string _regionName;
   bool _enableHttps;
   bool _enableCdnForUpload;
   bool _enableCdnForDownload;
 }; // class FDSClientConfiguration
+
+inline const std::string& FDSClientConfiguration::endpoint() const {
+  return _endpoint;
+}
+
+inline void FDSClientConfiguration::setEndpoint(const std::string& endpoint) {
+  _endpoint = endpoint;
+}
 
 inline const std::string& FDSClientConfiguration::regionName() const {
   return _regionName;
