@@ -18,9 +18,11 @@ class AccessControlList;
 class FDSBucket;
 class FDSObject;
 class FDSObjectListing;
+class FDSObjectsDeleting;
 class FDSObjectMetadata;
 class PutObjectResult;
 class QuotaPolicy;
+class MetadataBean;
 
 class GalaxyFDS {
 public:
@@ -55,6 +57,18 @@ public:
 
   virtual std::shared_ptr<FDSObjectListing> listNextBatchOfObjects(
       const FDSObjectListing& previousObjectListing) = 0;
+
+  virtual std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName,
+      bool withMetaData) = 0;
+
+  virtual std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName,
+      const std::string& prefix, bool withMetaData) = 0;
+
+  virtual std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName,
+      const std::string& prefix, const std::string& delimiter, bool withMetaData) = 0;
+
+  virtual std::shared_ptr<FDSObjectListing> listNextBatchOfObjects(
+      const FDSObjectListing& previousObjectListing, bool withMetaData) = 0;
 
   virtual std::shared_ptr<PutObjectResult> putObject(const std::string&
       bucketName, const std::string& objectName, std::istream& is) = 0;
@@ -93,6 +107,13 @@ public:
   virtual void deleteObject(const std::string& bucketName, const std::string&
       objectName) = 0;
 
+  virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::vector<std::string>& objectNameList) = 0;
+
+  // return object that encounter error when deleting
+  virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::string& prefix) = 0;
+
   virtual void restoreObject(const std::string& bucketName, const std::string&
       objectName) = 0;
 
@@ -122,6 +143,8 @@ public:
   virtual std::string generatePresignedCdnUri(const std::string& bucketName,
       const std::string& objectName, time_t expiration,
       const std::string& httpMethod) = 0;
+  virtual void setObjectMetadata(const std::string& bucketName, const std::string&
+      objectName, const MetadataBean& metadata) = 0;
 
 }; // classs GalaxyFDS
 

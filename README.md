@@ -1,18 +1,9 @@
-# Galaxy FDS C++ SDK User Guide
-
-## Build
-1. The following third-party libraries are required to being installed to build properly:
-  - Poco, only need its Foundation/Net/JSON/NetSSL_OpenSSL modules. Refer to http://pocoproject.org for installation.
-  - OpenSSL.
-
-2. After the dependencies are installed properly, run the following command to build:
+# build
+1. To build fds-client, you need to compile Poco(complete edition) & gtest manually. 
+2. After poco and gtest are built, you can use CMake to build the client itself: 
 ```
-$ cd ${SDK_SRC_DIR}
-$ mkdir cmake_build
-$ cd cmake_build
-$ cmake ..
+$ mkdir build
+$ cd build
+$ cmake .. -DPOCO_INCLUDE=/my/poco/include -DPOCO_LIB=/my/poco/lib -DGTEST_INCLUDE=/my/gtest/include -DGTEST_LIB=/my/gtest/lib
 $ make
 ```
-
-## Usage
-Please refer to the sample/test code to get start.

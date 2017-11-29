@@ -22,6 +22,7 @@ FDSClientConfiguration::FDSClientConfiguration() {
   _enableHttps = true;
   _enableCdnForUpload = false;
   _enableCdnForDownload = true;
+  _batchDeleteSize = 1000;
 }
 
 string FDSClientConfiguration::buildBaseUri(bool enableCdn) const {

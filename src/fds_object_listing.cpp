@@ -19,7 +19,6 @@ namespace fds {
 
 shared_ptr<FDSObjectListing> FDSObjectListing::deserialize(istream& is) {
   shared_ptr<FDSObjectListing> res(new FDSObjectListing());
-
   Parser parser;
   parser.parse(is);
   Var result = parser.result();
@@ -39,13 +38,21 @@ shared_ptr<FDSObjectListing> FDSObjectListing::deserialize(istream& is) {
   for (size_t i = 0; i < pObjectSummaryArray->size(); i++) {
     Object::Ptr pObjectSummary = pObjectSummaryArray->getObject(i);
     FDSObjectSummary objectSummary;
-    objectSummary.setObjectName(Utils::parse(pObjectSummary, string("name"),
-          emptyString));
+    objectSummary.setObjectName(Utils::parse(pObjectSummary, string("name"), emptyString));
     objectSummary.setBucketName(res->bucketName());
     Owner owner;
-    owner.setId(Utils::parse(pObjectSummary->getObject("owner"), string("id"),
-          emptyString));
+    owner.setId(Utils::parse(pObjectSummary->getObject("owner"), string("id"), emptyString));
     objectSummary.setOwner(owner);
+    MetadataBean metadataBean;
+    Object::Ptr metaVar = pObjectSummary->getObject("metadataBean");
+    if (metaVar) {
+      Object::Ptr pMetaObj = metaVar->getObject("rawMeta");
+      for (Poco::JSON::Object::ConstIterator iter = pMetaObj->begin(),
+         end = pMetaObj->end(); iter != end; iter++) {
+         metadataBean.add(iter->first, iter->second.toString());
+      }
+      objectSummary.setMetadataBean(metadataBean);
+    }
     objectSummary.setSize(Utils::parse(pObjectSummary, string("size"), 0l));
     objectSummaries.push_back(objectSummary);
   }
@@ -57,7 +64,6 @@ shared_ptr<FDSObjectListing> FDSObjectListing::deserialize(istream& is) {
     commonPrefixes.push_back(pCommonPrefixArray->getElement<string>(i));
   }
   res->setCommonPrefixes(commonPrefixes);
-
   return res;
 }
 
@@ -69,6 +75,15 @@ string FDSObjectListing::serialize(const FDSObjectListing& objectListing) {
     pOwnerObject->set("id", objectSummaries[i].owner().id());
     Object::Ptr pObjectSummary = new Object(true);
     pObjectSummary->set("owner", pOwnerObject);
+    Object::Ptr pMetaObj = new Object(true);
+    Object::Ptr pRawMetaObj = new Object(true);
+    std::map<std::string, std::string>::const_iterator iter;
+    for (iter = objectSummaries[i].metadataBean().metadata().begin();
+      iter != objectSummaries[i].metadataBean().metadata().end(); iter++) {
+      pRawMetaObj->set(iter->first, iter->second);
+    }
+    pMetaObj->set("rawMeta", pRawMetaObj);
+    pObjectSummary->set("metadataBean", pMetaObj);
     pObjectSummary->set("name", objectSummaries[i].objectName());
     pObjectSummary->set("size", objectSummaries[i].size());
     pObjectSummaryArray->add(pObjectSummary);

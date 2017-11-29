@@ -34,6 +34,8 @@ public:
 
   void setRegionName(const std::string& regionName);
 
+  int getMaxBatchDeleteSize() const;
+
   bool isHttpsEnabled() const;
 
   void enableHttps(bool enableHttps);
@@ -63,6 +65,7 @@ private:
   bool _enableHttps;
   bool _enableCdnForUpload;
   bool _enableCdnForDownload;
+  int  _batchDeleteSize;
 }; // class FDSClientConfiguration
 
 inline const std::string& FDSClientConfiguration::endpoint() const {
@@ -80,6 +83,10 @@ inline const std::string& FDSClientConfiguration::regionName() const {
 inline void FDSClientConfiguration::setRegionName(const std::string&
     regionName) {
   _regionName = regionName;
+}
+
+inline int FDSClientConfiguration::getMaxBatchDeleteSize() const {
+  return _batchDeleteSize;
 }
 
 inline bool FDSClientConfiguration::isHttpsEnabled() const {

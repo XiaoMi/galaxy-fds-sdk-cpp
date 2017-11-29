@@ -10,6 +10,7 @@
 #include <string> 
 
 #include "owner.h"
+#include "model/fds_object_metadata_bean.h"
 
 namespace galaxy {
 namespace fds {
@@ -32,11 +33,16 @@ public:
 
   void setSize(long size);
 
+  const MetadataBean& metadataBean() const;
+
+  void setMetadataBean(const MetadataBean& metadataBean);
+
 private:
   std::string _bucketName;
   std::string _objectName;
   Owner _owner;
   long _size;
+  MetadataBean _metadataBean;
 }; // class FDSObjectSummary
 
 inline const std::string& FDSObjectSummary::bucketName() const {
@@ -69,6 +75,14 @@ inline long FDSObjectSummary::size() const {
 
 inline void FDSObjectSummary::setSize(long size) {
   _size = size;
+}
+
+inline const MetadataBean& FDSObjectSummary::metadataBean() const {
+  return _metadataBean;
+}
+
+inline void FDSObjectSummary::setMetadataBean(const MetadataBean& metadataBean) {
+  _metadataBean = metadataBean;
 }
 
 } // namespace fds

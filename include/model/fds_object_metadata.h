@@ -13,6 +13,7 @@
 #include <string>
 
 #include "constants.h"
+#include "internal/utils.h"
 
 namespace galaxy {
 namespace fds {
@@ -27,6 +28,10 @@ public:
     _preDefinedMetadata.push_back(Constants::CONTENT_TYPE);
     _preDefinedMetadata.push_back(Constants::LAST_MODIFIED);
     _preDefinedMetadata.push_back(Constants::RANGE);
+
+    for (const std::string& metaKey: _preDefinedMetadata) {
+      _lowerCasedPreDefinedMetadata.push_back( Utils::toLowerCase(metaKey) );
+    }
   }
 
   void add(const std::string& key, const std::string& value);
@@ -39,6 +44,8 @@ private:
 private:
   std::map<std::string, std::string> _metadata;
   std::vector<std::string> _preDefinedMetadata;
+
+  std::vector<std::string> _lowerCasedPreDefinedMetadata;
 }; // class FDSObjectMetadata
 
 inline void FDSObjectMetadata::add(const std::string& key,

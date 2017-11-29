@@ -67,10 +67,11 @@ std::string Signer::Sign(const std::string& http_method, const std::string& uri,
   const EVP_MD* hmac_algo = ConvertSignAlgorithm(algorithm);
 
   unsigned int len;
+  unsigned char md[EVP_MAX_MD_SIZE];
   unsigned char* result = HMAC(hmac_algo, secret_key_id.c_str(),
       static_cast<int>(secret_key_id.size()),
       (const unsigned char* )(stringToSign.c_str()),
-      stringToSign.size(), NULL, &len);
+      stringToSign.size(), md, &len);
   return std::string((char* )(result), len);
 }
 

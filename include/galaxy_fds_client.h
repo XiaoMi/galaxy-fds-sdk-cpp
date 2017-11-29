@@ -62,6 +62,17 @@ public:
   std::shared_ptr<FDSObjectListing> listNextBatchOfObjects(
       const FDSObjectListing& previousObjectListing);
 
+  std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName, bool withMetaData);
+
+  std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName,
+      const std::string& prefix, bool withMetaData);
+
+  std::shared_ptr<FDSObjectListing> listObjects(const std::string& bucketName,
+      const std::string& prefix, const std::string& delimiter, bool withMetaData);
+
+  std::shared_ptr<FDSObjectListing> listNextBatchOfObjects(
+      const FDSObjectListing& previousObjectListing, bool withMetaData);
+
   std::shared_ptr<PutObjectResult> putObject(const std::string& bucketName,
       const std::string& objectName, std::istream& is);
 
@@ -100,6 +111,12 @@ public:
   void deleteObject(const std::string& bucketName, const std::string&
       objectName);
 
+  std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::vector<std::string>& objectNameList);
+
+  std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::string& prefix);
+
   void restoreObject(const std::string& bucketName, const std::string&
      objectName);
 
@@ -128,6 +145,9 @@ public:
   std::string generatePresignedCdnUri(const std::string& bucketName,
       const std::string& objectName, time_t expiration,
       const std::string& httpMethod);
+
+  void setObjectMetadata(const std::string& bucketName, const std::string&
+        objectName, const MetadataBean& metadata);
 
 private:
   std::string formatUri(const std::string& baseUri, const std::string&

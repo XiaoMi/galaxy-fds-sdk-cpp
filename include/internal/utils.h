@@ -8,6 +8,7 @@
 #define _INTERNAL_UTILS_H_
 
 #include <string>
+#include <algorithm>
 #include <Poco/Exception.h>
 #include <Poco/JSON/Object.h>
 
@@ -26,6 +27,11 @@ public:
     }
   }
 
+  static std::string toLowerCase(const std::string &original) {
+    std::string newString = original;
+    std::transform(newString.begin(), newString.end(), newString.begin(), ::tolower);
+    return newString;
+  }
 }; // class Utils
 
 } // namespace fds

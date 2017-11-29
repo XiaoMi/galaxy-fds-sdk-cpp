@@ -25,5 +25,7 @@ const string Constants::DATE = "Date";
 
 const string Constants::AUTHORIZATION = "authorization";
 
+const string Constants::META_CONTENT_LENGTH = "x-xiaomi-meta-content-length";
+
 } // namespace fds
 } // namespace galaxy

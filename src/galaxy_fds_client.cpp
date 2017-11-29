@@ -27,10 +27,13 @@
 #include "model/fds_bucket.h"
 #include "model/fds_object.h"
 #include "model/fds_object_listing.h"
+#include "model/fds_object_metadata_bean.h"
 #include "model/put_object_result.h"
 #include "model/quota_policy.h"
 #include "model/sub_resource.h"
+#include "model/delete_multi_objects_result.h"
 #include "signer/signer.h"
+#include "internal/utils.h"
 
 using namespace std;
 using namespace Poco;
@@ -298,20 +301,39 @@ void GalaxyFDSClient::setBucketQuota(const string& bucketName,
 
 }
 
+
 shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
     bucketName) {
-  return listObjects(bucketName, "", "/");
+  return listObjects(bucketName, "", "/", false);
 }
 
 shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
     bucketName, const string& prefix) {
-  return listObjects(bucketName, prefix, "/");
+  return listObjects(bucketName, prefix, "/", false);
 }
 
 shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
     bucketName, const string& prefix, const string& delimiter) {
+  return listObjects(bucketName, prefix, delimiter, false);
+}
+
+shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
+    bucketName, bool withMetaData) {
+  return listObjects(bucketName, "", "/", withMetaData);
+}
+
+shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
+    bucketName, const string& prefix, bool withMetaData) {
+  return listObjects(bucketName, prefix, "/", withMetaData);
+}
+
+shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
+    bucketName, const string& prefix, const string& delimiter, bool withMetaData) {
   string uri = formatUri(_pConfig->getBaseUri(), bucketName, _emptySubResources);
   uri += "?prefix=" + prefix + "&delimiter=" + delimiter;
+  if (withMetaData) {
+    uri += "&withMetaData";
+  }
   URI pocoUri(uri);
 
   shared_ptr<HTTPClientSession> pSession(_pSessionFacotry
@@ -338,6 +360,11 @@ shared_ptr<FDSObjectListing> GalaxyFDSClient::listObjects(const string&
 
 shared_ptr<FDSObjectListing> GalaxyFDSClient::listNextBatchOfObjects(const
     FDSObjectListing& previousObjectListing) {
+  return listNextBatchOfObjects(previousObjectListing, false);
+}
+
+shared_ptr<FDSObjectListing> GalaxyFDSClient::listNextBatchOfObjects(const
+    FDSObjectListing& previousObjectListing, bool withMetaData) {
   string bucketName = previousObjectListing.bucketName();
   string prefix = previousObjectListing.prefix();
   string delimiter = previousObjectListing.delimiter();
@@ -348,6 +375,9 @@ shared_ptr<FDSObjectListing> GalaxyFDSClient::listNextBatchOfObjects(const
   stringstream ss;
   ss << uri << "?prefix=" << prefix << "&delimiter=" << delimiter;
   ss << "&marker=" << marker << "&maxKeys=" << maxKeys;
+  if (withMetaData) {
+    ss << "&withMetaData";
+  }
   uri = ss.str();
   URI pocoUri(uri);
 
@@ -611,6 +641,34 @@ void GalaxyFDSClient::setObjectAcl(const string& bucketName, const string&
   }
 }
 
+void GalaxyFDSClient::setObjectMetadata(const std::string& bucketName, const std::string&
+        objectName, const MetadataBean& metadata) {
+  string uri = formatUri(_pConfig->getBaseUri(), bucketName + "/" + objectName, _emptySubResources);
+  uri += "?setMetaData";
+  URI pocoUri(uri);
+  shared_ptr<HTTPClientSession> pSession(_pSessionFacotry->createClientSession(
+          pocoUri));
+  pSession->setHost(pocoUri.getHost());
+  pSession->setPort(pocoUri.getPort());
+  HTTPRequest request(HTTPRequest::HTTP_PUT, uri, HTTPMessage::HTTP_1_1);
+  stringstream ss(MetadataBean::serialize(metadata));
+  prepareRequestHeaders(uri, HTTPRequest::HTTP_PUT, "application/json", ss,
+        *_pEmptyMetadata, request);
+  HTTPResponse response;
+
+  ostream& os = pSession->sendRequest(request);
+  StreamCopier::copyStream(ss, os);
+  istream& rs = pSession->receiveResponse(response);
+
+  if (response.getStatus() != HTTPResponse::HTTP_OK) {
+    stringstream msg;
+    msg << "Set object metadata failed, status=" << response.getStatus()
+      << ", reason=";
+    StreamCopier::copyStream(rs, msg);
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
+  }
+}
+
 bool GalaxyFDSClient::doesObjectExist(const string& bucketName, const string&
     objectName) {
   string uri = formatUri(_pConfig->getBaseUri(), bucketName + "/" + objectName,
@@ -668,6 +726,85 @@ void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
   }
 }
 
+std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
+    const vector<std::string>& objectNameList) {
+  string mediaType = "application/json";
+
+  string uri = formatUri(_pConfig->getBaseUri(), bucketName, _emptySubResources);
+  uri += "?deleteObjects=";
+  URI pocoUri(uri);
+
+  std::shared_ptr<HTTPClientSession> pSession(_pSessionFacotry->createClientSession(pocoUri));
+  pSession->setHost(pocoUri.getHost());
+  pSession->setPort(pocoUri.getPort());
+
+  std::string json = serializeVectorString(objectNameList);
+  std::istringstream is;
+  is.str(json);
+
+  HTTPRequest request(HTTPRequest::HTTP_PUT, uri, HTTPMessage::HTTP_1_1);
+  prepareRequestHeaders(uri, HTTPRequest::HTTP_PUT, mediaType, is, *_pEmptyMetadata, request);
+
+  HTTPResponse response;
+  ostream& os = pSession->sendRequest(request);
+  StreamCopier::copyStream(is, os);
+  istream& rs = pSession->receiveResponse(response);
+
+  if (response.getStatus() != HTTPResponse::HTTP_OK) {
+    stringstream msg;
+    msg << "Delete objects failed, status=" << response.getStatus() << ", reason=";
+    StreamCopier::copyStream(rs, msg);
+    throw GalaxyFDSClientException(response.getStatus(), msg.str());
+  }
+  return FDSObjectsDeleting::deserialize(rs);
+}
+
+std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
+    const std::string& prefix) {
+  if (bucketName.empty() || prefix.empty()) {
+    string reason = string("invalid bucketName(") + bucketName + string(") or prefix(") + prefix + string(")");
+    throw GalaxyFDSClientException(reason);
+  }
+  std::shared_ptr<FDSObjectListing> objects = listObjects(bucketName, prefix, std::string(""));
+  // first, we should skip the files that already been marked deleted, but not physical deleted
+  while (objects->objectSummaries().size() <= 0 && objects->commonPrefixes().size() <= 0 && objects->truncated()) {
+      objects = listNextBatchOfObjects(*objects);
+  }
+  int batchDeleteSize = _pConfig->getMaxBatchDeleteSize();
+  for (int iter_cnt = 0; !objects->objectSummaries().empty(); iter_cnt ++) {
+    int cnt = objects->objectSummaries().size();
+    if (cnt <= 0) {
+      return std::make_shared<FDSObjectsDeleting>();
+    }
+
+    std::vector<std::string> objectNameList;
+    for (const auto& objectsum : objects->objectSummaries()) {
+      objectNameList.emplace_back(objectsum.objectName());
+      cnt -= 1;
+      if (objectNameList.size() >= batchDeleteSize || cnt <= 0) {
+        try {
+          std::shared_ptr<FDSObjectsDeleting> res = deleteObjects(bucketName, objectNameList);
+          if (res->countFailedObjects() > 0) {
+            for (const errorObject& errobject : res->getErrorList()) {
+              //TODO: any error_code that represent deleting object succeed should add below
+              if (errobject.errorCode != HTTPResponse::HTTP_NOT_FOUND ||
+                  errobject.errorCode != HTTPResponse::HTTP_OK) {
+                return res;
+              }
+            }
+          }
+        }
+        catch(GalaxyFDSClientException& e) {
+          throw e;
+        }
+        objectNameList.clear();
+      }
+    }
+
+    objects = listNextBatchOfObjects(*objects);
+  }
+  return std::make_shared<FDSObjectsDeleting>();
+}
 
 void GalaxyFDSClient::restoreObject(const std::string& bucketName, const std::string&
     objectName) {
@@ -833,6 +970,7 @@ string GalaxyFDSClient::generatePresignedUri(const string& baseUri, const
   return ss.str();
 }
 
+
 string GalaxyFDSClient::formatUri(const string& baseUri, const string&
     resource, const vector<string>& subResources) {
   string res = baseUri + "/" + resource;
@@ -859,7 +997,7 @@ shared_ptr<FDSObjectMetadata> GalaxyFDSClient::parseMetadata(const HTTPResponse&
   for (HTTPResponse::ConstIterator iter = response.begin()
       ; iter != response.end(); ++iter) {
     try {
-      res->add(iter->first, iter->second);
+      res->add(Utils::toLowerCase(iter->first), iter->second);
     } catch(exception e) {
       // Ignored
     }

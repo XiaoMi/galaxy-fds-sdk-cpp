@@ -32,6 +32,8 @@ public:
 
   static const std::string AUTHORIZATION;
 
+  static const std::string META_CONTENT_LENGTH;
+
   static const std::string RANGE;
 }; // class Constants
 
