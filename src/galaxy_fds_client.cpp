@@ -702,8 +702,16 @@ bool GalaxyFDSClient::doesObjectExist(const string& bucketName, const string&
 
 void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
     objectName) {
+    deleteObject(bucketName, objectName, true);
+  }
+
+void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
+    objectName, bool enableTrash) {
   string uri = formatUri(_pConfig->getBaseUri(), bucketName + "/" + objectName,
       _emptySubResources);
+  if (!enableTrash) {
+    uri += "?enableTrash=false";
+  }
   URI pocoUri(uri);
 
   shared_ptr<HTTPClientSession> pSession(_pSessionFacotry->createClientSession(
@@ -728,10 +736,18 @@ void GalaxyFDSClient::deleteObject(const string& bucketName, const string&
 
 std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
     const vector<std::string>& objectNameList) {
+    return deleteObjects(bucketName, objectNameList, true);
+  }
+
+std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
+    const vector<std::string>& objectNameList, bool enableTrash) {
   string mediaType = "application/json";
 
   string uri = formatUri(_pConfig->getBaseUri(), bucketName, _emptySubResources);
   uri += "?deleteObjects=";
+  if (!enableTrash) {
+    uri += "&enableTrash=false";
+  }
   URI pocoUri(uri);
 
   std::shared_ptr<HTTPClientSession> pSession(_pSessionFacotry->createClientSession(pocoUri));
@@ -761,6 +777,11 @@ std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::st
 
 std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
     const std::string& prefix) {
+    return deleteObjects(bucketName, prefix, true);
+  }
+
+std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::string& bucketName,
+    const std::string& prefix, bool enableTrash) {
   if (bucketName.empty() || prefix.empty()) {
     string reason = string("invalid bucketName(") + bucketName + string(") or prefix(") + prefix + string(")");
     throw GalaxyFDSClientException(reason);
@@ -783,7 +804,7 @@ std::shared_ptr<FDSObjectsDeleting> GalaxyFDSClient::deleteObjects(const std::st
       cnt -= 1;
       if (objectNameList.size() >= batchDeleteSize || cnt <= 0) {
         try {
-          std::shared_ptr<FDSObjectsDeleting> res = deleteObjects(bucketName, objectNameList);
+          std::shared_ptr<FDSObjectsDeleting> res = deleteObjects(bucketName, objectNameList, enableTrash);
           if (res->countFailedObjects() > 0) {
             for (const errorObject& errobject : res->getErrorList()) {
               //TODO: any error_code that represent deleting object succeed should add below

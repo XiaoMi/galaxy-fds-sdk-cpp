@@ -107,12 +107,21 @@ public:
   virtual void deleteObject(const std::string& bucketName, const std::string&
       objectName) = 0;
 
+  virtual void deleteObject(const std::string& bucketName, const std::string&
+      objectName, bool enableTrash) = 0;
+
   virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
       const std::vector<std::string>& objectNameList) = 0;
+
+  virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::vector<std::string>& objectNameList, bool enableTrash) = 0;
 
   // return object that encounter error when deleting
   virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
       const std::string& prefix) = 0;
+
+  virtual std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::string& prefix, bool enableTrash) = 0;
 
   virtual void restoreObject(const std::string& bucketName, const std::string&
       objectName) = 0;

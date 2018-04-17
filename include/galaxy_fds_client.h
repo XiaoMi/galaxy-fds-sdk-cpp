@@ -111,11 +111,20 @@ public:
   void deleteObject(const std::string& bucketName, const std::string&
       objectName);
 
+  void deleteObject(const std::string& bucketName, const std::string&
+      objectName, bool enableTrash);
+
   std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
       const std::vector<std::string>& objectNameList);
 
   std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::vector<std::string>& objectNameList, bool enableTrash);
+
+  std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
       const std::string& prefix);
+
+  std::shared_ptr<FDSObjectsDeleting> deleteObjects(const std::string& bucketName,
+      const std::string& prefix, bool enableTrash);
 
   void restoreObject(const std::string& bucketName, const std::string&
      objectName);
