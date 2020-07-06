@@ -31,6 +31,8 @@ public:
   GalaxyFDSClient(const std::string& accessKey, const std::string& secretKey,
       const FDSClientConfiguration& config);
 
+  ~GalaxyFDSClient() override = default;
+
   static const std::string DATE_FORMAT;
 
   std::vector<std::shared_ptr<FDSBucket> > listBuckets() override;
