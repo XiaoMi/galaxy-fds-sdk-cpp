@@ -26,6 +26,8 @@ class MetadataBean;
 
 class GalaxyFDS {
 public:
+  virtual ~GalaxyFDS() = default;
+
   virtual std::vector<std::shared_ptr<FDSBucket> > listBuckets() = 0;
 
   virtual void createBucket(const std::string& bucketName) = 0;
